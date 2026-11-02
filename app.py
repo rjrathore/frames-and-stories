@@ -34,6 +34,19 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
     "mysql+pymysql://root:password@localhost:3306/frames_stories?charset=utf8mb4"
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Enable SSL for cloud MySQL when a CA certificate is provided
+ca_cert = os.getenv("DB_CA_CERT")
+
+if ca_cert:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "connect_args": {
+            "ssl": {
+                "ca": ca_cert
+            }
+        }
+    }
+
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB upload limit
 
 app.config.update(

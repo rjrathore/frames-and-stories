@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Join — Frames & Stories{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+  <div class="auth-card">
+    <p class="eyebrow">JOIN THE COMMUNITY</p><h1>Create account</h1><p class="muted">Like photographs and share the stories they bring to mind.</p>
+    <form method="post">
+      {{ form.hidden_tag() }}
+      <div class="mb-3">{{ form.name.label(class="form-label") }}{{ form.name(class="form-control dark-input", placeholder="Your name") }}{% for e in form.name.errors %}<small class="field-error">{{ e }}</small>{% endfor %}</div>
+      <div class="mb-3">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control dark-input", placeholder="you@example.com") }}{% for e in form.email.errors %}<small class="field-error">{{ e }}</small>{% endfor %}</div>
+      <div class="mb-3">{{ form.password.label(class="form-label") }}{{ form.password(class="form-control dark-input", placeholder="At least 8 characters") }}{% for e in form.password.errors %}<small class="field-error">{{ e }}</small>{% endfor %}</div>
+      <div class="mb-3">{{ form.confirm_password.label(class="form-label") }}{{ form.confirm_password(class="form-control dark-input", placeholder="Enter password again") }}{% for e in form.confirm_password.errors %}<small class="field-error">{{ e }}</small>{% endfor %}</div>
+      <button class="btn btn-accent w-100">Create account</button>
+    </form>
+    <p class="auth-foot">Already registered? <a href="{{ url_for('login') }}">Sign in</a></p>
+  </div>
+</section>
+{% endblock %}

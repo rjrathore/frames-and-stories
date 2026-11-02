@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — Frames & Stories{% endblock %}
+{% block content %}<section class="auth-wrap"><div class="auth-card text-center"><p class="eyebrow">{{ code }} ERROR</p><h1>{{ message }}</h1><a href="{{ url_for('index') }}" class="btn btn-accent mt-3">Return home</a></div></section>{% endblock %}

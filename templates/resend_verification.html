@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Resend verification — Frames & Stories{% endblock %}
+{% block content %}
+<section class="auth-wrap"><div class="auth-card">
+  <p class="eyebrow">EMAIL VERIFICATION</p><h1>Resend your link</h1>
+  <p class="muted">Enter the email address you used to register.</p>
+  <form method="post">{{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control dark-input", placeholder="you@example.com") }}</div>
+    <button class="btn btn-accent w-100">Send verification link</button>
+  </form>
+</div></section>
+{% endblock %}

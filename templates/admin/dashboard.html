@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Admin dashboard — Frames & Stories{% endblock %}
+{% block content %}
+<section class="container section-pad">
+  <div class="section-heading"><div><p class="eyebrow">PRIVATE AREA</p><h1>Admin dashboard</h1><p class="muted">Manage your published photographs and community.</p></div>
+    <a class="btn btn-accent" href="{{ url_for('new_photo') }}">＋ Add photograph</a>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><span>Photographs</span><strong>{{ photos|length }}</strong></div>
+    <div class="stat-card"><span>Recent comments</span><strong>{{ comments|length }}</strong></div>
+    <div class="stat-card"><span>Total likes</span><strong>{{ photos|sum(attribute='like_count') }}</strong></div>
+  </div>
+  <h2 class="subheading">Your photographs</h2>
+  {% if photos %}
+  <div class="admin-list">
+    {% for photo in photos %}
+    <div class="admin-photo-row">
+      <img src="{{ photo.image_url }}" alt="{{ photo.title }}">
+      <div class="admin-photo-info"><strong>{{ photo.title }}</strong><span>{{ photo.category }} · {{ photo.like_count }} likes · {{ photo.comment_count }} comments</span></div>
+      <a class="btn btn-outline-light btn-sm" href="{{ url_for('edit_photo', photo_id=photo.id) }}">Edit</a>
+      <form method="post" action="{{ url_for('delete_photo', photo_id=photo.id) }}" onsubmit="return confirm('Permanently delete this photograph?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline-danger btn-sm">Delete</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty-state"><p>You haven't uploaded any photographs yet.</p><a href="{{ url_for('new_photo') }}" class="btn btn-accent">Upload your first photograph</a></div>{% endif %}
+  <h2 class="subheading mt-5">Recent community comments</h2>
+  {% for comment in comments %}
+    <div class="recent-comment"><strong>{{ comment.author.name }}</strong> on <a href="{{ url_for('photo_detail', photo_id=comment.photograph_id) }}">{{ comment.photograph.title }}</a><p>{{ comment.body }}</p>
+      <form method="post" action="{{ url_for('admin_delete_comment', comment_id=comment.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="delete-link">Remove comment</button></form>
+    </div>
+  {% else %}<p class="muted">No comments yet.</p>{% endfor %}
+</section>
+{% endblock %}

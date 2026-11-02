@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} — Frames & Stories{% endblock %}
+{% block content %}
+<section class="auth-wrap"><div class="auth-card auth-card-wide">
+  <p class="eyebrow">ADMIN · PHOTOGRAPHY</p><h1>{{ heading }}</h1>
+  {% if photo %}<img class="edit-preview" src="{{ photo.image_url }}" alt="{{ photo.title }}">{% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.title.label(class="form-label") }}{{ form.title(class="form-control dark-input") }}{% for e in form.title.errors %}<small class="field-error">{{ e }}</small>{% endfor %}</div>
+    <div class="mb-3">{{ form.story.label(class="form-label") }}{{ form.story(class="form-control dark-input", rows="7", placeholder="Tell visitors what happened, what you noticed, and why this moment matters...") }}{% for e in form.story.errors %}<small class="field-error">{{ e }}</small>{% endfor %}</div>
+    <div class="row"><div class="col-md-6 mb-3">{{ form.category.label(class="form-label") }}{{ form.category(class="form-select dark-input") }}</div><div class="col-md-6 mb-3">{{ form.location.label(class="form-label") }}{{ form.location(class="form-control dark-input", placeholder="e.g. Bhopal, India") }}</div></div>
+    <div class="mb-3">{{ form.photo_date.label(class="form-label") }}{{ form.photo_date(class="form-control dark-input", type="date") }}</div>
+    {% if form.image is defined %}<div class="mb-4">{{ form.image.label(class="form-label") }}{{ form.image(class="form-control dark-input", accept="image/*") }}<small class="muted">Image files only. Maximum 8 MB.</small></div>{% endif %}
+    <button class="btn btn-accent w-100">{{ 'Publish photograph' if not photo else 'Save changes' }}</button>
+    <a href="{{ url_for('admin_dashboard') }}" class="cancel-link">Cancel</a>
+  </form>
+</div></section>
+{% endblock %}

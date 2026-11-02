@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Gallery — Frames & Stories{% endblock %}
+{% block content %}
+<section class="page-header container">
+  <p class="eyebrow">THE COLLECTION</p><h1>Photographs & stories</h1>
+  <p>Take your time. Every frame has something to say.</p>
+</section>
+<section class="container section-pad">
+  <div class="filter-row">
+    <a class="filter-chip {% if not selected_category %}active{% endif %}" href="{{ url_for('gallery') }}">All</a>
+    {% for value, label in categories %}
+      <a class="filter-chip {% if selected_category == value %}active{% endif %}" href="{{ url_for('gallery', category=value) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  {% if photos %}
+    <div class="photo-grid">
+      {% for photo in photos %}
+        <a class="photo-card" href="{{ url_for('photo_detail', photo_id=photo.id) }}">
+          <div class="photo-card-image"><img src="{{ photo.image_url }}" alt="{{ photo.title }}" loading="lazy"></div>
+          <div class="photo-card-meta"><span>{{ photo.category }}</span><span>♡ {{ photo.like_count }}</span></div>
+          <h3>{{ photo.title }}</h3><p>{{ photo.story|truncate(105) }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><h3>No photographs here yet.</h3><p>Try another category or come back soon.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

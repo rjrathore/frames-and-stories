@@ -15,10 +15,8 @@ from flask_login import (
     LoginManager, UserMixin, current_user, login_required,
     login_user, logout_user
 )
-from flask_mail import Mail, Message
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm, CSRFProtect
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy import UniqueConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import StringField, PasswordField, TextAreaField, SelectField, FileField
@@ -49,20 +47,11 @@ if ca_cert:
 
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB upload limit
 
-app.config.update(
-    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com"),
-    MAIL_PORT=int(os.getenv("MAIL_PORT", "587")),
-    MAIL_USE_TLS=os.getenv("MAIL_USE_TLS", "true").lower() == "true",
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_DEFAULT_SENDER=os.getenv("MAIL_DEFAULT_SENDER") or os.getenv("MAIL_USERNAME"),
-)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.login_message = "Please sign in to continue."
-mail = Mail(app)
 csrf = CSRFProtect(app)
 
 cloudinary.config(
@@ -176,30 +165,6 @@ class EditPhotoForm(FlaskForm):
     photo_date = StringField("Date captured (optional)", validators=[Optional()])
 
 
-def serializer():
-    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-
-
-def make_token(email, purpose):
-    return serializer().dumps({"email": email, "purpose": purpose})
-
-
-def read_token(token, purpose, max_age=3600):
-    try:
-        data = serializer().loads(token, max_age=max_age)
-        if data.get("purpose") != purpose:
-            return None
-        return data.get("email")
-    except (BadSignature, SignatureExpired):
-        return None
-
-
-def send_email(to, subject, html):
-    if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-        raise RuntimeError("Email is not configured. Set MAIL_USERNAME and MAIL_PASSWORD in .env.")
-    msg = Message(subject=subject, recipients=[to], html=html)
-    mail.send(msg)
-
 
 def admin_required(view):
     @wraps(view)
@@ -253,66 +218,32 @@ def photo_detail(photo_id):
 def register():
     if current_user.is_authenticated:
         return redirect(url_for("index"))
+
     form = RegisterForm()
+
     if form.validate_on_submit():
         email = form.email.data.lower().strip()
+
         if User.query.filter_by(email=email).first():
             flash("An account with this email already exists. Please sign in.", "warning")
             return redirect(url_for("login"))
-        user = User(name=form.name.data.strip(), email=email, is_verified=False)
+
+        user = User(
+            name=form.name.data.strip(),
+            email=email,
+            is_verified=True
+        )
+
         user.set_password(form.password.data)
+
         db.session.add(user)
         db.session.commit()
-        token = make_token(user.email, "verify")
-        verify_url = url_for("verify_email", token=token, _external=True)
-        try:
-            send_email(
-                user.email, "Verify your Frames & Stories account",
-                f'<p>Hello {user.name},</p><p>Please verify your email to activate your account.</p>'
-                f'<p><a href="{verify_url}">Verify my email</a></p><p>This link expires in 1 hour.</p>'
-            )
-        except Exception:
-            app.logger.exception("Verification email could not be sent")
-            flash("Your account was created, but the verification email could not be sent. Check the email settings and try resend verification.", "danger")
-            return redirect(url_for("resend_verification"))
-        flash("Account created! Check your inbox for the verification link.", "success")
+
+        flash("Account created successfully! You can now sign in.", "success")
         return redirect(url_for("login"))
+
     return render_template("register.html", form=form)
 
-
-@app.route("/verify/<token>")
-def verify_email(token):
-    email = read_token(token, "verify")
-    if not email:
-        flash("That verification link is invalid or expired. Request a new one.", "warning")
-        return redirect(url_for("resend_verification"))
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        flash("Account not found.", "danger")
-        return redirect(url_for("register"))
-    user.is_verified = True
-    db.session.commit()
-    flash("Email verified! You can now sign in.", "success")
-    return redirect(url_for("login"))
-
-
-@app.route("/resend-verification", methods=["GET", "POST"])
-def resend_verification():
-    form = LoginForm()
-    if request.method == "POST" and form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.lower().strip()).first()
-        # Generic response avoids revealing whether an email has an account.
-        if user and not user.is_verified:
-            token = make_token(user.email, "verify")
-            verify_url = url_for("verify_email", token=token, _external=True)
-            try:
-                send_email(user.email, "Verify your Frames & Stories account",
-                           f'<p><a href="{verify_url}">Verify my email</a></p><p>This link expires in 1 hour.</p>')
-            except Exception:
-                app.logger.exception("Could not resend verification email")
-        flash("If an unverified account exists for that email, a new link has been sent.", "info")
-        return redirect(url_for("login"))
-    return render_template("resend_verification.html", form=form)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -323,9 +254,6 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower().strip()).first()
         if user and user.check_password(form.password.data):
-            if not user.is_verified and not user.is_admin:
-                flash("Please verify your email before signing in.", "warning")
-                return redirect(url_for("resend_verification"))
             login_user(user)
             flash("Welcome back!", "success")
             target = request.args.get("next")
@@ -347,8 +275,6 @@ def logout():
 @app.route("/photo/<int:photo_id>/like", methods=["POST"])
 @login_required
 def toggle_like(photo_id):
-    if not current_user.is_verified and not current_user.is_admin:
-        abort(403)
     photo = Photograph.query.filter_by(id=photo_id, is_published=True).first_or_404()
     existing = Like.query.filter_by(user_id=current_user.id, photograph_id=photo.id).first()
     if existing:
